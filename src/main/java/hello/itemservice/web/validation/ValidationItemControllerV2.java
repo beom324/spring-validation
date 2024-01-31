@@ -45,7 +45,8 @@ public class ValidationItemControllerV2 {
         return "validation/v2/addForm";
     }
 
-    @PostMapping("/add")
+
+//    @PostMapping("/add")
     public String addItemV1(@ModelAttribute Item item,BindingResult bindingResult, RedirectAttributes redirectAttribute, Model model ) {
 
 
@@ -72,6 +73,42 @@ public class ValidationItemControllerV2 {
         if(bindingResult.hasErrors()){//에러가 있으면
             log.info("errors={}",bindingResult);
         //bindingresult는 model에 안담아도 자동으로 넘어감
+            return "validation/v2/addForm";
+        }
+
+
+        Item savedItem = itemRepository.save(item);
+        redirectAttribute.addAttribute("itemId", savedItem.getId());
+        redirectAttribute.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
+    @PostMapping("/add")
+    public String addItemV2(@ModelAttribute Item item,BindingResult bindingResult, RedirectAttributes redirectAttribute, Model model ) {
+
+        //검증 로직
+        if(!StringUtils.hasText(item.getItemName())){//itemName에 값이 없으면
+
+            bindingResult.addError(new FieldError("item","itemName",item.getItemName(),false,null,null,"상품이름은 필수입니다.")); //modelAttribute에 담기는 그 model값
+        }
+        if(item.getPrice()==null || item.getPrice()>1000000){
+            bindingResult.addError(new FieldError("item","price",item.getPrice(),false,null,null,"가격은 최대9,999,999원입니다.")); //modelAttribute에 담기는 그 model값
+        }
+        if(item.getQuantity()==null||item.getQuantity()>=9999){
+            bindingResult.addError(new FieldError("item","quantity",item.getQuantity(),false,null,null,"수량은 최대 9,999개 입니다.")); //modelAttribute에 담기는 그 model값
+        }
+
+        //특정 필드가 아닌 복합 필드 검증
+        if(item.getPrice()!=null && item.getQuantity()!=null){
+            int resultPrice = item.getPrice()*item.getQuantity();
+            if(resultPrice<10000){
+                bindingResult.addError(new ObjectError("item",null,null,"가격 * 수량의 합은 10,000원 이상이어야 합니다"));
+            }
+        }
+
+        //검증에 실패하면 다시 입력 폼으로
+        if(bindingResult.hasErrors()){//에러가 있으면
+            log.info("errors={}",bindingResult);
+            //bindingresult는 model에 안담아도 자동으로 넘어감
             return "validation/v2/addForm";
         }
 
