@@ -92,6 +92,7 @@ public class ValidationItemControllerV2 {
 
 
             bindingResult.rejectValue("itemName","required");
+
         }
         if(item.getPrice()==null || item.getPrice()>1000000){
 
