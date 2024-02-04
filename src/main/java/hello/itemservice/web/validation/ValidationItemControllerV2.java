@@ -23,6 +23,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ValidationItemControllerV2 {
 
+    private final ItemValidator itemValidator;
     private final ItemRepository itemRepository;
 
     @GetMapping
@@ -82,7 +83,7 @@ public class ValidationItemControllerV2 {
         redirectAttribute.addAttribute("status", true);
         return "redirect:/validation/v2/items/{itemId}";
     }
-    @PostMapping("/add")
+//    @PostMapping("/add")
     public String addItemV4(@ModelAttribute Item item,BindingResult bindingResult, RedirectAttributes redirectAttribute, Model model ) {
 
         log.info("target ={}", bindingResult.getTarget());
@@ -124,6 +125,21 @@ public class ValidationItemControllerV2 {
         redirectAttribute.addAttribute("status", true);
         return "redirect:/validation/v2/items/{itemId}";
     }
+    @PostMapping("/add")
+    public String addItemV5(@ModelAttribute Item item, BindingResult bindingResult,
+                            RedirectAttributes redirectAttributes) {
+        itemValidator.validate(item, bindingResult);
+        if (bindingResult.hasErrors()) {
+            log.info("errors={}", bindingResult);
+            return "validation/v2/addForm";
+        }
+        //성공 로직
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
+
 //    @PostMapping("/add")
 //    public String addItemV3(@ModelAttribute Item item,BindingResult bindingResult, RedirectAttributes redirectAttribute, Model model ) {
 //
@@ -163,25 +179,8 @@ public class ValidationItemControllerV2 {
 //    @PostMapping("/add")
     public String addItemV2(@ModelAttribute Item item,BindingResult bindingResult, RedirectAttributes redirectAttribute, Model model ) {
 
-        //검증 로직
-        if(!StringUtils.hasText(item.getItemName())){//itemName에 값이 없으면
+        itemValidator.validate(item, bindingResult);
 
-            bindingResult.addError(new FieldError("item","itemName",item.getItemName(),false,null,null,"상품이름은 필수입니다.")); //modelAttribute에 담기는 그 model값
-        }
-        if(item.getPrice()==null || item.getPrice()>1000000){
-            bindingResult.addError(new FieldError("item","price",item.getPrice(),false,null,null,"가격은 최대9,999,999원입니다.")); //modelAttribute에 담기는 그 model값
-        }
-        if(item.getQuantity()==null||item.getQuantity()>=9999){
-            bindingResult.addError(new FieldError("item","quantity",item.getQuantity(),false,null,null,"수량은 최대 9,999개 입니다.")); //modelAttribute에 담기는 그 model값
-        }
-
-        //특정 필드가 아닌 복합 필드 검증
-        if(item.getPrice()!=null && item.getQuantity()!=null){
-            int resultPrice = item.getPrice()*item.getQuantity();
-            if(resultPrice<10000){
-                bindingResult.addError(new ObjectError("item",null,null,"가격 * 수량의 합은 10,000원 이상이어야 합니다"));
-            }
-        }
 
         //검증에 실패하면 다시 입력 폼으로
         if(bindingResult.hasErrors()){//에러가 있으면
@@ -196,6 +195,7 @@ public class ValidationItemControllerV2 {
         redirectAttribute.addAttribute("status", true);
         return "redirect:/validation/v2/items/{itemId}";
     }
+
 
     @GetMapping("/{itemId}/edit")
     public String editForm(@PathVariable Long itemId, Model model) {
